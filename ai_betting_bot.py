@@ -15,7 +15,7 @@ from telegram.ext import (
 # It is safer to use environment variables in your hosting service (e.g., Render).
 BOT_TOKEN = "8103941911:AAHg9ks7zZ2oDResrrwwjkUPEMpLVuds2A4"
 ADMIN_USER_ID = "1726525830" # Kept for notifications
-CHANNEL_LINK = "https://t.me/+9cR7vkFZK8E0NWVl" # Correctly named as a channel link
+WEBSITE_LINK = "https://onlywin.ltd" # Changed to the website link
 
 
 # --- CUSTOMIZABLE BOT CONTENT ---
@@ -34,7 +34,7 @@ FEATURES_DESCRIPTION = (
     "✅ **Step-by-Step Guides:** We show you exactly how much to stake on each outcome to lock in your profit.\n"
     "✅ **Premium Tools:** Access our custom calculators and software that make arbitrage betting simple and fast.\n"
     "✅ **Dedicated Support:** Our team is here to guide you on your journey to consistent, risk-free returns.\n\n"
-    f"Ready to start winning? Join our channel by typing /subscribe."
+    f"Ready to start winning? Visit our website by typing /subscribe."
 )
 
 # Persuasive FAQs for the /askquery command
@@ -49,7 +49,7 @@ ARBITRAGE_FAQS = (
     "**(4) Is this legal?**\n"
     "Yes, it is 100% legal. You are simply placing bets on public websites. Bookmakers don't like it, but there is nothing illegal about being a smart investor.\n\n"
     "**Convinced? The only thing stopping you from making a profit is getting started.**\n"
-    "👉 Click /subscribe to join our channel now!"
+    "👉 Click /subscribe to visit our site and join now!"
 )
 
 
@@ -58,7 +58,7 @@ HELP_MESSAGE = (
     "Our goal is to help you achieve consistent, risk-free profits through arbitrage betting.\n\n"
     "**Available Commands:**\n"
     "/start - Welcome message\n"
-    "/subscribe - Join our private channel\n"
+    "/subscribe - Visit our website to join\n"
     "/features - See what our service offers\n"
     "/askquery - Learn how arbitrage guarantees profit"
 )
@@ -90,8 +90,8 @@ async def ask_query(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 async def subscribe(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     subscribe_text = (
         "**Your journey to guaranteed profits starts now.**\n\n"
-        "Click the link below to join our private channel and gain access to our exclusive tools and alerts.\n\n"
-        f"➡️ **[Join {CHANNEL_NAME} Now]({CHANNEL_LINK})**\n\n"
+        "Click the link below to visit our official website and gain access to our exclusive tools and alerts.\n\n"
+        f"➡️ **[Visit {CHANNEL_NAME}]({WEBSITE_LINK})**\n\n"
         "Stop gambling. Start investing."
     )
     await update.message.reply_text(subscribe_text, parse_mode='Markdown', disable_web_page_preview=True)
