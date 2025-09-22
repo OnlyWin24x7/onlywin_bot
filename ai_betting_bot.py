@@ -190,10 +190,3 @@ def main() -> None:
 
 if __name__ == '__main__':
     main()
-```
-
-### **How to Set It Up (Crucial Steps)**
-
-1.  **Install the New Library:** Your bot now depends on Google's AI library. Open your terminal and run:
-    ```bash
-    pip install google-generativeai
