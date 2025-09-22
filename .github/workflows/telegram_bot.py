@@ -1,0 +1,191 @@
+import logging
+import os
+import random
+from datetime import datetime, timedelta
+
+# You need to install the Google AI library: pip install google-generativeai
+import google.generativeai as genai
+
+from telegram import Update
+from telegram.ext import (
+    Application,
+    CommandHandler,
+    MessageHandler,
+    filters,
+    ContextTypes,
+)
+
+# --- CONFIGURATION ---
+# Secrets should be set in your hosting environment (e.g., Render)
+BOT_TOKEN = os.environ.get("8103941911:AAHg9ks7zZ2oDResrrwwjkUPEMpLVuds2A4")
+GEMINI_API_KEY = os.environ.get("AIzaSyBFS_Rmn-27Fxj7uPV3LfYREJ72g8Zr5Xg")
+ADMIN_USER_ID = os.environ.get("1726525830") # Kept for potential future admin-only commands
+PRIVATE_CHANNEL_LINK = os.environ.get("https://t.me/+9cR7vkFZK8E0NWVl")
+
+
+# --- CUSTOMIZABLE BOT CONTENT ---
+CHANNEL_NAME = "OnlyWin"
+SUBSCRIPTION_PRICE_INFO = "Access is granted after a one-time contribution. Use /subscribe for details."
+
+# This is the "brain" of your AI. It will only answer questions based on this context.
+AI_CONTEXT = f"""
+You are 'OnlyWin Assistant', a friendly and professional AI for a premium betting analysis Telegram channel called {CHANNEL_NAME}.
+Your goal is to answer user questions, encourage them to subscribe, and provide helpful information based ONLY on the details provided below.
+Do not invent information. If a user asks about something not covered here, politely state that you can only provide information about the channel's services.
+
+**Channel Information:**
+- **Name:** {OnlyWin}
+- **Service:** A premier betting analysis channel. We provide data-driven insights and strategic tips to enhance a user's betting experience. We do not place bets for users.
+- **Expertise:** Our team of experts analyzes matches and odds to provide high-value predictions.
+
+**Subscription Features:**
+- **Daily Tips:** Expertly analyzed betting tips are provided every day.
+- **In-Depth Analysis:** Subscribers get detailed breakdowns of key matches and major sporting events.
+- **Bankroll Management:** We teach strategies to manage betting funds effectively and minimize risk.
+- **Priority Support:** Subscribers get direct access to our team for questions.
+
+**Subscription Details:**
+- **Cost:** {₹1500}
+- **How to Join:** Users should use the /subscribe command to get the link to our private channel.
+
+**Disclaimer (Very Important):**
+- Betting involves significant risk. Our service is for informational purposes and is not a guarantee of winning.
+- Users must be 18 years or older.
+- We are not liable for any financial losses. Always gamble responsibly and only wager what you can afford to lose.
+"""
+
+# Sample tips for the /tip command
+SAMPLE_TIPS = [
+    "📈 **Tip:** Focus on 'value betting' - find odds that are higher than the true probability of an outcome.",
+    "🧠 **Tip:** Avoid 'chasing losses'. Stick to your bankroll management strategy even after a losing bet.",
+    "📊 **Tip:** Specialize in one or two sports you understand deeply rather than betting on everything.",
+    "🚫 **Tip:** Never bet under the influence. Clear judgment is your most important asset.",
+]
+
+
+# --- AI & LOGGING SETUP ---
+try:
+    genai.configure(api_key=GEMINI_API_KEY)
+    ai_model = genai.GenerativeModel('gemini-1.5-flash')
+except Exception as e:
+    print(f"Error configuring Gemini AI: {e}")
+    ai_model = None
+
+logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+# Used for simple rate-limiting to prevent spam
+user_query_times = {}
+
+# --- BOT COMMAND HANDLERS ---
+
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    user_name = update.effective_user.first_name
+    welcome_message = (
+        f"Hello {user_name}!\n\n"
+        f"I am the official assistant for **{OnlyWin}**. I can answer your questions about our services.\n\n"
+        "Try asking me things like:\n"
+        "-> _What kind of tips do you offer?_\n"
+        "-> _How can you help me manage my bankroll?_\n\n"
+        "Or use /help to see a list of commands."
+    )
+    await update.message.reply_text(welcome_message, parse_mode='Markdown')
+
+async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    help_text = (
+        "**Here are the commands you can use:**\n\n"
+        "/start - Shows the welcome message.\n"
+        "/subscribe - Get the link to join our exclusive channel.\n"
+        "/tip - Get a free sample betting tip.\n"
+        "/analyze - See a sample match analysis.\n"
+        "/disclaimer - Read our important responsible gambling notice.\n\n"
+        "You can also just chat with me and ask any question you have about the channel!"
+    )
+    await update.message.reply_text(help_text, parse_mode='Markdown')
+
+async def subscribe(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    subscribe_text = (
+        "**Ready to Join?**\n\n"
+        f"To get full access to all our features, please join our private channel using the link below.\n\n"
+        f"➡️ [Click Here to Join {CHANNEL_NAME}]({PRIVATE_CHANNEL_LINK})\n\n"
+        "We look forward to having you!"
+    )
+    await update.message.reply_text(subscribe_text, parse_mode='Markdown', disable_web_page_preview=True)
+
+async def tip_of_the_day(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    tip = random.choice(SAMPLE_TIPS)
+    await update.message.reply_text(tip, parse_mode='Markdown')
+
+async def analyze_match(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    analysis_text = (
+        "**Here is a sample of our analysis style:**\n\n"
+        "⚽ **Match:** Manchester United vs. Liverpool\n"
+        "📊 **Analysis:** Liverpool's current form shows strong offensive pressure, averaging 2.5 goals in their last 5 games. Man United's defense has been inconsistent. Given the odds, a bet on 'Over 2.5 Goals' presents potential value.\n"
+        "⚠️ **Disclaimer:** This is a fictional sample analysis for demonstration purposes only."
+    )
+    await update.message.reply_text(analysis_text, parse_mode='Markdown')
+
+async def disclaimer(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    await update.message.reply_text(AI_CONTEXT.split("**Disclaimer (Very Important):**")[1], parse_mode='Markdown')
+
+# --- AI MESSAGE HANDLER ---
+
+async def handle_ai_query(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    user_id = update.effective_user.id
+    current_time = datetime.now()
+
+    # Simple rate-limiting: allow one query every 5 seconds per user
+    if user_id in user_query_times and current_time - user_query_times[user_id] < timedelta(seconds=5):
+        await update.message.reply_text("Please wait a moment before sending another question.")
+        return
+    
+    user_query_times[user_id] = current_time
+    user_message = update.message.text
+    
+    if not ai_model:
+        await update.message.reply_text("Sorry, my AI core is currently offline. Please try again later.")
+        return
+
+    full_prompt = f"{AI_CONTEXT}\n\n---\n\nUser Question: \"{user_message}\"\n\nAnswer:"
+
+    try:
+        await context.bot.send_chat_action(chat_id=update.effective_chat.id, action='typing')
+        response = ai_model.generate_content(full_prompt)
+        await update.message.reply_text(response.text, parse_mode='Markdown')
+    except Exception as e:
+        logger.error(f"Error generating AI response: {e}")
+        await update.message.reply_text("I'm sorry, I encountered an issue while processing your request. Please try asking in a different way.")
+
+# --- MAIN FUNCTION ---
+
+def main() -> None:
+    if not BOT_TOKEN or not GEMINI_API_KEY:
+        print("ERROR: Environment variables BOT_TOKEN and GEMINI_API_KEY must be set.")
+        return
+
+    application = Application.builder().token(BOT_TOKEN).build()
+
+    # Register command handlers
+    application.add_handler(CommandHandler("start", start))
+    application.add_handler(CommandHandler("help", help_command))
+    application.add_handler(CommandHandler("subscribe", subscribe))
+    application.add_handler(CommandHandler("tip", tip_of_the_day))
+    application.add_handler(CommandHandler("analyze", analyze_match))
+    application.add_handler(CommandHandler("disclaimer", disclaimer))
+
+    # Register the AI query handler for all other text messages
+    application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_ai_query))
+
+    print("AI Bot is running...")
+    application.run_polling()
+
+if __name__ == '__main__':
+    main()
+```
+
+### **How to Set It Up (Crucial Steps)**
+
+1.  **Install the New Library:** Your bot now depends on Google's AI library. Open your terminal and run:
+    ```bash
+    pip install google-generativeai
+    
